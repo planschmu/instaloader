@@ -538,12 +538,13 @@ class Instaloader:
                          userids: Optional[List[Union[int, Profile]]] = None,
                          fast_update: bool = False,
                          filename_target: Optional[str] = ':stories',
-                         storyitem_filter: Optional[Callable[[StoryItem], bool]] = None) -> None:
+                         storyitem_filter: Optional[Callable[[StoryItem], bool]] = None, latest_ids = None) -> None:
         """
         Download available stories from user followees or all stories of users whose ID are given.
         Does not mark stories as seen.
         To use this, one needs to be logged in
 
+        :param latest_ids:
         :param userids: List of user IDs or Profiles to be processed in terms of downloading their stories
         :param fast_update: If true, abort when first already-downloaded picture is encountered
         :param filename_target: Replacement for {target} in dirname_pattern and filename_pattern
@@ -551,6 +552,9 @@ class Instaloader:
         :param storyitem_filter: function(storyitem), which returns True if given StoryItem should be downloaded
         :raises LoginRequiredException: If called without being logged in.
         """
+
+        if latest_ids is None:
+            latest_ids = []
 
         if not userids:
             self.context.log("Retrieving all visible stories...")
@@ -563,6 +567,9 @@ class Instaloader:
             totalcount = user_story.itemcount
             count = 1
             for item in user_story.get_items():
+                if item.shortcode in latest_ids:
+                    self.context.log("Story item with id '{}' is already known. Stopping..".format(item.shortcode))
+                    break
                 if storyitem_filter is not None and not storyitem_filter(item):
                     self.context.log("<{} skipped>".format(item), flush=True)
                     continue
@@ -956,9 +963,11 @@ class Instaloader:
                           fast_update: bool = False,
                           post_filter: Optional[Callable[[Post], bool]] = None,
                           storyitem_filter: Optional[Callable[[Post], bool]] = None,
-                          raise_errors: bool = False):
+                          raise_errors: bool = False,
+                          latest_ids=None):
         """High-level method to download set of profiles.
 
+        :param latest_ids:
         :param profiles: Set of profiles to download.
         :param profile_pic: not :option:`--no-profile-pic`.
         :param posts: not :option:`--no-posts`.
@@ -973,6 +982,9 @@ class Instaloader:
            catched and printed with :meth:`InstaloaderContext.error_catcher`.
 
         .. versionadded:: 4.1"""
+
+        if latest_ids is None:
+            latest_ids = []
 
         @contextmanager
         def _error_raiser(_str):
@@ -1020,6 +1032,9 @@ class Instaloader:
                     totalcount = profile.mediacount
                     count = 1
                     for post in profile.get_posts():
+                        if post.shortcode in latest_ids:
+                            print("Post with id '{}' is already known. Stopping..".format(post.shortcode))
+                            break
                         self.context.log("[%3i/%3i] " % (count, totalcount), end="", flush=True)
                         count += 1
                         if post_filter is not None and not post_filter(post):
@@ -1048,7 +1063,7 @@ class Instaloader:
             with self.context.error_catcher("Download stories"):
                 self.context.log("Downloading stories")
                 self.download_stories(userids=list(profiles), fast_update=fast_update, filename_target=None,
-                                      storyitem_filter=storyitem_filter)
+                                      storyitem_filter=storyitem_filter, latest_ids=latest_ids)
 
     def download_profile(self, profile_name: Union[str, Profile],
                          profile_pic: bool = True, profile_pic_only: bool = False,

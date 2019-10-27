@@ -64,7 +64,8 @@ def _main(instaloader: Instaloader, targetlist: List[str],
           download_stories: bool = False, download_highlights: bool = False, download_tagged: bool = False,
           fast_update: bool = False,
           max_count: Optional[int] = None, post_filter_str: Optional[str] = None,
-          storyitem_filter_str: Optional[str] = None) -> None:
+          storyitem_filter_str: Optional[str] = None,
+          latest_ids=None) -> None:
     """Download set of profiles, hashtags etc. and handle logging in and session files if desired."""
     # Parse and generate filter function
     post_filter = None
@@ -186,14 +187,14 @@ def _main(instaloader: Instaloader, targetlist: List[str],
             instaloader.context.error("Warning: Use --login to download HD version of profile pictures.")
         instaloader.download_profiles(profiles,
                                       download_profile_pic, download_posts, download_tagged, download_highlights,
-                                      download_stories, fast_update, post_filter, storyitem_filter)
+                                      download_stories, fast_update, post_filter, storyitem_filter, latest_ids=latest_ids)
         if anonymous_retry_profiles:
             instaloader.context.log("Downloading anonymously: {}"
                                     .format(' '.join([p.username for p in anonymous_retry_profiles])))
             with instaloader.anonymous_copy() as anonymous_loader:
                 anonymous_loader.download_profiles(anonymous_retry_profiles,
                                                    download_profile_pic, download_posts, download_tagged,
-                                                   fast_update=fast_update, post_filter=post_filter)
+                                                   fast_update=fast_update, post_filter=post_filter, latest_ids=latest_ids)
     except KeyboardInterrupt:
         print("\nInterrupted by user.", file=sys.stderr)
     # Save session if it is useful
